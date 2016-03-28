@@ -91,6 +91,7 @@ export default class PromptComponent extends React.Component<Props, State> imple
     }
 
     handleKeyDown(event: KeyboardEvent): void {
+      if (!(this.isKeyModified(event)) || (event.ctrlKey && event.key == 'v'))
         this.commandNode.focus();
     }
 
@@ -227,6 +228,10 @@ export default class PromptComponent extends React.Component<Props, State> imple
 
     private isEmpty(): boolean {
         return this.prompt.value.replace(/\s/g, "").length === 0;
+    }
+
+    private isKeyModified(event: KeyboardEvent): boolean {
+      return (event.ctrlKey || event.metaKey || event.altKey)
     }
 
     private async navigateHistory(event: KeyboardEvent): Promise<void> {
