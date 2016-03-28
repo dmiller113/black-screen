@@ -1,32 +1,26 @@
-import pty = require('pty.js');
-import _ = require('lodash')
+import {executeCommandWithShellConfig} from "./PTY";
+import {memoize} from "./Decorators";
 
-class Aliases {
-    static aliases: _.Dictionary<string>;
-
-    static initialize(): void {
-        this.aliases = {};
-        this.importAliasesFrom('zsh');
+export default class Aliases {
+    static async find(alias: string): Promise<string> {
+        return (await this.all())[alias];
     }
 
-    static find(alias: string): string {
-        return this.aliases[alias];
-    }
+    @memoize()
+    static async all(): Promise<Dictionary<string>> {
+        const lines = await executeCommandWithShellConfig("alias");
 
-    static importAliasesFrom(shellName: string): void {
-        var zsh = pty.spawn(shellName, ['-i', '-c', 'alias'], {env: process.env});
+        return lines.reduce(
+            (accumulator: Dictionary<string>, aliasLine: string) => {
+                let split = aliasLine.split("=");
 
-        var aliases = '';
-        zsh.stdout.on('data', (text: string) => aliases += text.toString());
-        zsh.on('exit', () => {
-            aliases.split('\n').forEach((alias: string) => {
-                var split = alias.split('=');
-                this.aliases[split[0]] = /'?([^']*)'?/.exec(split[1])[1];
-            });
-        });
+                let name = /(alias )?(.*)/.exec(split[0])[2];
+                let value = /'?([^']*)'?/.exec(split[1])[1];
+
+                accumulator[name] = value;
+                return accumulator;
+            },
+            <Dictionary<string>>{}
+        );
     }
 }
-
-Aliases.initialize();
-
-export = Aliases;
